@@ -132,7 +132,7 @@ def test_invalid_api_status(monkeypatch):
             language="English",
             conversation_context="The project deadline is approaching."
         )
-        
+
 def test_blank_reason_in_response(monkeypatch):
     import pytest
     from services.clarification import check_instruction_clarity
@@ -165,8 +165,8 @@ def test_blank_reason_in_response(monkeypatch):
         check_instruction_clarity(
             "Submit the report by 5 PM.",
             "English",
-        )   
-        
+        )
+
 def test_missing_clarification_question(monkeypatch):
     import pytest
     from services.clarification import check_instruction_clarity
@@ -202,8 +202,8 @@ def test_missing_clarification_question(monkeypatch):
         check_instruction_clarity(
             "Finish the report soon.",
             "English",
-        )   
-        
+        )
+
 def test_network_failure_is_handled():
     from unittest.mock import patch
     import requests
@@ -214,8 +214,8 @@ def test_network_failure_is_handled():
         side_effect=requests.ConnectionError("Network unavailable"),
     ):
         with pytest.raises(RuntimeError, match="API request failed:"):
-            check_instruction_clarity("Start the meeting at 10 AM.")    
-            
+            check_instruction_clarity("Start the meeting at 10 AM.")
+
 def test_invalid_api_response_is_handled():
     from unittest.mock import patch
     import pytest
@@ -231,8 +231,8 @@ def test_invalid_api_response_is_handled():
         }
 
         with pytest.raises(RuntimeError, match="Invalid API response."):
-            check_instruction_clarity("Start the meeting at 10 AM.")   
-            
+            check_instruction_clarity("Start the meeting at 10 AM.")
+
 def test_context_is_included_in_clarification_prompt():
     from unittest.mock import Mock, patch
     from services.clarification import check_instruction_clarity
@@ -266,4 +266,49 @@ def test_context_is_included_in_clarification_prompt():
     prompt = mock_post.call_args.kwargs["json"]["messages"][0]["content"]
 
     assert "Stop the machine at 5 PM." in prompt
-    assert "Do it 10 minutes later." in prompt                                   
+    assert "Do it 10 minutes later." in prompt
+
+def test_conflicting_instructions_rules_are_in_prompt(monkeypatch):
+    from unittest.mock import Mock
+
+    mock_response = Mock()
+    mock_response.raise_for_status.return_value = None
+    mock_response.json.return_value = {
+        "choices": [
+            {
+                "message": {
+                    "content": (
+                        '{"status": "NEEDS_CLARIFICATION", '
+                        '"reason": "Instructions conflict.", '
+                        '"question": "Should the machine be started?"}'
+                    )
+                }
+            }
+        ]
+    }
+
+    captured = {}
+
+    def fake_post(*args, **kwargs):
+        captured["prompt"] = kwargs["json"]["messages"][0]["content"]
+        return mock_response
+
+    monkeypatch.setattr(
+        "services.clarification.requests.post",
+        fake_post,
+    )
+
+    check_instruction_clarity(
+        instruction="Do not start the machine at 10 AM.",
+        language="Hindi",
+        conversation_context=(
+            "Previous workplace instruction: "
+            "Start the machine at 10 AM."
+        ),
+    )
+
+    prompt = captured["prompt"]
+
+    assert "conflicts with a previous instruction" in prompt
+    assert "Never silently choose one of the conflicting instructions." in prompt
+    assert "Start the machine at 10 AM." in prompt

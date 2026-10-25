@@ -35,6 +35,9 @@ Use the previous context only when it is relevant to the current instruction.
 If the current instruction refers to an earlier task, interpret it using that context.
 Never assume details that are not present in the instruction or context.
 If important information is still missing, ask one specific clarification question.
+If the current instruction conflicts with a previous instruction in the conversation context, set status to NEEDS_CLARIFICATION.
+Explain the conflict briefly and ask which instruction should be followed.
+Never silently choose one of the conflicting instructions.
 
 Rules:
 1. Check whether the instruction includes enough information to act correctly.

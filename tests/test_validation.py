@@ -94,5 +94,90 @@ def test_smart_translation_rejects_unsupported_source_language(capsys):
     assert "Unsupported source language." in captured.out
     assert "Translated instruction:" not in captured.out
     assert "Audio generated at:" not in captured.out
-    
-                 
+
+from unittest.mock import Mock
+
+from services.translation import translate_to_gujarati
+
+
+def test_translation_prompt_preserves_numbers(monkeypatch):
+    import services.translation as translation
+
+    monkeypatch.setattr(translation, "GROQ_API_KEY", "test-key")
+
+    response = Mock()
+    response.raise_for_status.return_value = None
+    response.json.return_value = {
+        "choices": [{"message": {"content": "મીટિંગમાં 25 લોકો આવશે."}}]
+    }
+
+    def fake_post(*args, **kwargs):
+        prompt = kwargs["json"]["messages"][0]["content"]
+        assert "Preserve the original meaning." in prompt
+        assert "25" in kwargs["json"]["messages"][1]["content"]
+        return response
+
+    monkeypatch.setattr(translation.requests, "post", fake_post)
+
+    result = translate_to_gujarati("મીટિંગમાં 25 લોકો આવશે.")
+    assert "25" in result
+
+
+def test_translation_prompt_preserves_dates(monkeypatch):
+    import services.translation as translation
+
+    monkeypatch.setattr(translation, "GROQ_API_KEY", "test-key")
+
+    response = Mock()
+    response.raise_for_status.return_value = None
+    response.json.return_value = {
+        "choices": [{"message": {"content": "મીટિંગ 25 ડિસેમ્બરે છે."}}]
+    }
+
+    def fake_post(*args, **kwargs):
+        assert "25 December" in kwargs["json"]["messages"][1]["content"]
+        return response
+
+    monkeypatch.setattr(translation.requests, "post", fake_post)
+
+    result = translate_to_gujarati("Meeting is on 25 December.")
+    assert "25" in result
+
+
+def test_translation_prompt_preserves_negation(monkeypatch):
+    import services.translation as translation
+
+    monkeypatch.setattr(translation, "GROQ_API_KEY", "test-key")
+
+    response = Mock()
+    response.raise_for_status.return_value = None
+    response.json.return_value = {
+        "choices": [{"message": {"content": "આજે કામ કરશો નહીં."}}]
+    }
+
+    def fake_post(*args, **kwargs):
+        assert "Do not" in kwargs["json"]["messages"][1]["content"]
+        return response
+
+    monkeypatch.setattr(translation.requests, "post", fake_post)
+
+    result = translate_to_gujarati("Do not work today.")
+    assert "નહીં" in result
+
+def test_smart_translation_rejects_unsupported_target_language(capsys):
+    with patch(
+        "builtins.input",
+        side_effect=[
+            "Hello, start the meeting.",
+            "hindi",
+            "english",
+            "exit",
+        ],
+    ):
+        smart_workplace_translation()
+
+    captured = capsys.readouterr()
+
+    assert "Unsupported target language." in captured.out
+    assert "Translated instruction:" not in captured.out
+    assert "Audio generated at:" not in captured.out

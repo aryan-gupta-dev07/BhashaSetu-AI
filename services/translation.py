@@ -27,7 +27,12 @@ def _translate_text(text, source_language, target_language):
                         f"Translate the following workplace instruction "
                         f"from {source_language} into natural "
                         f"{target_language}. Preserve the original "
-                        f"meaning. Return only the translation."
+                        f"meaning. Preserve the meaning of all numbers, dates, "
+                        f"times, quantities, names, and negative instructions. "
+                        f"Never turn a negative instruction into a positive one. "
+                        f"Preserve the relationship between dates, deadlines, and times. "
+                        f"If the original instruction is ambiguous, do not invent details. "
+                        f"Return only the translation."
                     ),
                 },
                 {
