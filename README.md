@@ -39,3 +39,8 @@ The current test suite contains 18 tests, which passed in the development enviro
 - Never publish API keys or secrets.
 - Translation quality depends on the underlying AI service.
 - Verify important workplace instructions before acting on them.
+
+## Project Demo & Documentation
+
+- **LinkedIn Demo:** [Watch BhashaSetu AI Demo](https://lnkd.in/p/dcEfM9-A)
+- **Project Documentation:** See `docs/` folder.
